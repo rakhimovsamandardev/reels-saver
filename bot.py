@@ -9,6 +9,7 @@ from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiogram.types import FSInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiohttp import web
 import yt_dlp
 
 load_dotenv()
@@ -21,6 +22,22 @@ dp = Dispatcher()
 
 # Havolalarni vaqtincha saqlash uchun lug'at (tezkor xotira)
 url_cache = {}
+
+# --- RENDER PORT TALABINI QONDIRISH UCHUN WEB SERVER ---
+PORT = int(os.getenv("PORT", 10000))
+
+async def handle(request):
+    return web.Response(text="Bot is running!")
+
+async def web_server():
+    app = web.Application()
+    app.router.add_get("/", handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", PORT)
+    await site.start()
+    logging.info(f"🌐 Web server {PORT} portda ochildi (Render uchun)")
+# ------------------------------------------------------
 
 def extract_audio_fast(video_path, audio_path):
     # Videodan audioni qayta yuklamasdan juda tez ajratib olish (ffmpeg)
@@ -138,6 +155,9 @@ async def process_download(callback: types.CallbackQuery):
         url_cache.pop(msg_id, None)
 
 async def main():
+    # Render port talabini bajarish uchun veb-serverni ishga tushiramiz
+    asyncio.create_task(web_server())
+    
     print("🚀 Maksimal tezlashtirilgan va menyuli bot ishga tushdi...")
     await dp.start_polling(bot)
 
